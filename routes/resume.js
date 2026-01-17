@@ -59,9 +59,18 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
 
     const result = await cloudinaryUpload();
 
+    // For raw files (PDFs), we need to use the cloudinary.url() method to get proper authenticated URL
+    const publicUrl = cloudinary.url(result.public_id, {
+      resource_type: 'raw',
+      type: 'upload',
+      secure: true,
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60) // 1 year expiry
+    });
+
     const resume = await Resume.create({
       username: req.body.username,
-      resumeUrl: result.secure_url,
+      resumeUrl: publicUrl,
       publicId: result.public_id,
       originalName: req.file.originalname,
     });
@@ -69,11 +78,11 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
     res.json({
       message: "Resume uploaded successfully",
       resumeId: resume._id,
-      // Direct Cloudinary link - FULLY PUBLIC, works anywhere
-      directLink: result.secure_url,
+      // Direct Cloudinary link - authenticated for 1 year
+      directLink: publicUrl,
       // Backend tracking link - works globally with deployed backend
       trackingLink: `${process.env.BASE_URL || 'http://localhost:5000'}/resume/${resume._id}`,
-      note: "Use directLink for instant access. Use trackingLink for view count tracking."
+      note: "Use trackingLink for view count tracking (recommended)."
     });
 
   } catch (err) {
