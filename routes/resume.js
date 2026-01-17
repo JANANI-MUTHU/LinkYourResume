@@ -43,11 +43,10 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
       new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           {
-            resource_type: "raw", // Use 'raw' for PDFs, not 'auto'
+            resource_type: "raw",
             public_id: publicId,
-            folder: "resumes",
-            format: "pdf",
-            access_mode: "public"
+            type: "upload",
+            invalidate: true
           },
           (error, result) => {
             if (error) reject(error);
@@ -72,9 +71,9 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
       resumeId: resume._id,
       // Direct Cloudinary link - FULLY PUBLIC, works anywhere
       directLink: result.secure_url,
-      // Backend tracking link - only works if backend is deployed publicly
-      trackingLink: `http://localhost:5000/resume/${resume._id}`,
-      note: "Use directLink for public sharing (zero cost). Use trackingLink only if backend is deployed publicly."
+      // Backend tracking link - works globally with deployed backend
+      trackingLink: `${process.env.BASE_URL || 'http://localhost:5000'}/resume/${resume._id}`,
+      note: "Use directLink for instant access. Use trackingLink for view count tracking."
     });
 
   } catch (err) {
